@@ -3,4 +3,5 @@
 
     <string name="canceling">Отмена</string>
     <string name="search_hint">Введите текст</string>
+    <string name="error_title">Что-то пошло не так. Попробуйте позже</string>
 </resources>

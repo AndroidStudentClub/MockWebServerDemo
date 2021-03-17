@@ -1,11 +1,13 @@
 package ru.androidschool.mockwebserver.network
 
+import android.app.Application
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
+import ru.androidschool.mockwebserver.MockWebServerApp
 
 object MovieApiClient {
 
@@ -23,15 +25,15 @@ object MovieApiClient {
         })
         .build()
 
-    val apiClient: MovieApiInterface by lazy {
+    fun apiClient(application: Application): MovieApiInterface {
 
         val retrofit = Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl((application as MockWebServerApp).getBaseUrl())
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
             .build()
 
-        return@lazy retrofit.create(MovieApiInterface::class.java)
+        return retrofit.create(MovieApiInterface::class.java)
     }
 }
