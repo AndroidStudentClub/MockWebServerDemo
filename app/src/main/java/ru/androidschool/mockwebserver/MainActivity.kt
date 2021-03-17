@@ -4,7 +4,11 @@ import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toolbar
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -16,6 +20,8 @@ class MainActivity : AppCompatActivity() {
 
     val movies_recycler_view by lazy { findViewById<RecyclerView>(R.id.movies_recycler_view) }
     val search_toolbar by lazy { findViewById<SearchBar>(R.id.search_toolbar) }
+    val progress_circular by lazy { findViewById<ProgressBar>(R.id.progress_circular) }
+    val error_text by lazy { findViewById<TextView>(R.id.error_text_view) }
 
     @SuppressLint("CheckResult")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +35,7 @@ class MainActivity : AppCompatActivity() {
             .filter { it.isNotEmpty() }
             .observeOn(Schedulers.io())
             .flatMapSingle { it ->
-                MovieApiClient.apiClient.searchByQuery(
+                MovieApiClient.apiClient(application).searchByQuery(
                     MainActivity.API_KEY,
                     "en",
                     it
@@ -38,29 +44,44 @@ class MainActivity : AppCompatActivity() {
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 setMovies(it.results)
-                Log.d(MainActivity.TAG, it.toString())
+                Log.d(TAG, it.toString())
             }, {
-                Log.e(MainActivity.TAG, it.toString())
+                Log.e(TAG, it.toString())
             })
 
 
         // Получаем Single
-        val getTopRatedMovies = MovieApiClient.apiClient.getTopRatedMovies(API_KEY, "ru")
+        val getTopRatedMovies =
+            MovieApiClient.apiClient(application).getTopRatedMovies(API_KEY, "ru")
 
         getTopRatedMovies
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
+            .doOnSubscribe { updateProgress(true) }
+            .doFinally { updateProgress(false) }
             .subscribe(
                 {
                     val movies = it.results
                     // Передаем результат в adapter и отображаем элементы
                     movies_recycler_view.adapter = MoviesAdapter(movies, R.layout.list_item_movie)
+                    movies_recycler_view.visibility = View.VISIBLE
+                    updateError()
                 },
                 { error ->
+                    movies_recycler_view.visibility = View.GONE
+                    updateError()
                     // Логируем ошибку
                     Log.e(TAG, error.toString())
                 }
             )
+    }
+
+    private fun updateError() {
+        error_text.isVisible = (movies_recycler_view.visibility == View.GONE)
+    }
+
+    private fun updateProgress(isVisible: Boolean) {
+        progress_circular.isVisible = isVisible
     }
 
     fun setMovies(movies: List<Movie>) {
