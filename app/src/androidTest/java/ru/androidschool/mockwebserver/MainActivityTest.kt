@@ -41,6 +41,35 @@ class MainActivityTest {
         rxIdlingResource.register()
     }
 
+    @Test
+    fun testSuccessfulResponse() {
+        mockWebServer.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                return MockResponse()
+                        // Формируем усешный ответ от сервера
+                    .setResponseCode(200)
+                    .setBody(FileReader.readStringFromFile("success_response.json"))
+            }
+
+        }
+
+        // Запускаем MainActivity
+        activityRule.launchActivity(null)
+        // Ждём когда завершится запрос через RxJava
+        rxIdlingResource.waitForIdle()
+
+        // Проверяем, что ProgressBar - скрыт
+        Espresso.onView(withId(R.id.progress_circular))
+            .check(ViewAssertions.matches(ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.GONE)))
+
+        // Проверяем, что список с фильмами виден
+        Espresso.onView(withId(R.id.movies_recycler_view))
+            .check(ViewAssertions.matches(ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
+
+        // Проверяем, что текст об ошибке - скрыт
+        Espresso.onView(withId(R.id.error_text_view))
+            .check(ViewAssertions.matches(ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.GONE)))
+    }
 
     @After
     fun teardown() {
